@@ -9,8 +9,9 @@ export default class SphereDrawer {
 		this.y = 0;
 		this.radius = 100;
 		this.t = new Transform();
+		this.last = null;
 	}
-	smallCircle(lat, lon, rad, negative = false) {
+	smallCircle(lat, lon, rad, positive = true) {
 		const cosRad = Math.cos(rad);
 		const v = new Vec3([ 0, 0, 1 ]);
 		v.rotX(lat);
@@ -37,9 +38,29 @@ export default class SphereDrawer {
 			a = shift;
 			b = Math.PI*2 - shift;
 		}
-		if (negative != (v.z < 0)) {
+		if (!positive != (v.z < 0)) {
 			[ a, b ] = [ b, b + Math.PI*2 - (b - a) ];
 		}
 		ctx.ellipse(cx, cy, xRad, yRad, dir, a, b);
+		this.last = { a, b, dir, eRad, z: v.z, positive };
+		return this;
+	}
+	fill() {
+		const { last } = this;
+		if (last === null) {
+			return;
+		}
+		const { a, b, dir, eRad, z, positive } = last;
+		const dif = Math.PI*2 - (b - a);
+		const delta = Math.sin(dif/2)*eRad;
+		const halfAngle = Math.asin(delta);
+		const start = dir - halfAngle;
+		const end = dir + halfAngle;
+		if ((z < 0) != !positive) {
+			this.ctx.arc(this.x, this.y, this.radius, end, start, true);
+		} else {
+			this.ctx.arc(this.x, this.y, this.radius, start, end);
+		}
+		return this;
 	}
 }

@@ -55,4 +55,14 @@ export default class Vec3 extends Array {
 		}
 		return this.set(temp);
 	}
+	len() {
+		const [ x, y, z ] = this;
+		return Math.sqrt(x*x + y*y + z*z);
+	}
+	scale(val) {
+		for (let i=0; i<3; ++i) {
+			this[i] *= val;
+		}
+		return this;
+	}
 }
