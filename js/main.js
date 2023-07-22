@@ -1,74 +1,60 @@
-const aux = new Array(9);
-const [ X, Y, Z ] = [ 0, 1, 2 ];
-const [
-	IX, IY, IZ,
-	JX, JY, JZ,
-	ZX, ZY, ZZ,
-] = [
-	0, 1, 2,
-	3, 4, 5,
-	6, 7, 8,
-];
-const calcUnsignedAngle = (adj, opp) => {
-	const len = Math.sqrt(adj**2 + opp**2);
-	if (len === 0) {
-		return 0;
+import SphereDrawer from './sphere-drawer.js';
+
+const canvas = document.querySelector('canvas');
+const ctx = canvas.getContext('2d');
+const drawer = new SphereDrawer(ctx);
+
+drawer.x = 0.5*canvas.width;
+drawer.y = 0.5*canvas.height;
+drawer.radius = Math.min(canvas.width, canvas.height)*0.4;
+
+const n = 5;
+const t0 = Date.now();
+
+const render = () => {
+	const t1 = Date.now();
+	const dt = t1 - t0;
+
+	ctx.lineWidth = 3;
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+	ctx.beginPath();
+	ctx.arc(drawer.x, drawer.y, drawer.radius, 0, Math.PI*2);
+	ctx.fillStyle = '#446';
+	ctx.fill();
+
+	ctx.strokeStyle = 'rgba(0, 127, 255, 0.5)';
+
+	drawer.t.reset()
+		.rotY(dt*5e-4 - Math.PI/2)
+		.rotX(Math.sin(Date.now()*1e-3)*0.2);
+
+	const latStride = Math.PI/(n + 1);
+	const lonStride = Math.PI/n;
+	for (let i=0; i<n; ++i) {
+		ctx.beginPath();
+		drawer.smallCircle(Math.PI/2, 0, (i + 1)*latStride);
+		ctx.stroke();
+		
+		ctx.beginPath();
+		drawer.smallCircle(0, i*lonStride, Math.PI/2);
+		ctx.stroke();
 	}
-	const angle = Math.acos(adj/len);
-	if (opp >= 0) {
-		return angle;
-	}
-	return Math.PI*2 - angle;
+
+	ctx.strokeStyle = 'rgba(255, 127, 0, 0.5)';
+	ctx.beginPath();
+	drawer.smallCircle(0, 0, 0.5, true);
+	ctx.stroke();
+
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+	ctx.beginPath();
+	drawer.smallCircle(0, 0, 0.5, false);
+	ctx.stroke();
 };
-const sinCosRotTransform = (t, sin, cos, a, b) => {
-	for (let i=0; i<9; ++i) {
-		const axis = i%3;
-		if (axis === a) {
-			aux[i] = t[i]*cos - t[i - a + b]*sin;
-		} else if (axis === b) {
-			aux[i] = t[i]*cos + t[i - b + a]*sin;
-		} else {
-			aux[i] = t[i];
-		}
-	}
-	for (let i=0; i<9; ++i) {
-		t[i] = aux[i];
-	}
+
+const frameLoop = () => {
+	requestAnimationFrame(frameLoop);
+	render();
 };
-const getLatLonAzm = (mat) => {
-	let jx = mat[JX];
-	let jy = mat[JY];
-};
-class Transform extends Array {
-	constructor() {
-		super(9);
-		this.reset();
-	}
-	reset() {
-		this.set([ 1, 0, 0, 0, 1, 0, 0, 0, 1 ]);
-	}
-	set(values) {
-		for (let i=0; i<9; ++i) {
-			this[i] = values[i];
-		}
-		return this;
-	}
-	rot(angle, a, b) {
-		sinCosRotTransform(this, Math.sin(angle), Math.cos(angle), a, b);
-		return this;
-	}
-	rotX(angle) { return this.rot(angle, Z, Y); }
-	rotY(angle) { return this.rot(angle, X, Z); }
-	rotZ(angle) { return this.rot(angle, Y, X); }
-	getLatLonAzm() {
-	}
-}
-class SphereDrawer {
-	constructor(ctx) {
-		this.ctx = ctx;
-		this.x = 0;
-		this.y = 0;
-		this.radius = 100;
-		this.t = new Transform();
-	}
-}
+
+frameLoop();
