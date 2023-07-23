@@ -1,5 +1,5 @@
 import Transform from './transform.js';
-import { calcUnsignedAngle } from './utils.js';
+import { calcSignedAngle, calcUnsignedAngle } from './utils.js';
 import Vec3 from './vec3.js';
 
 export default class SphereDrawer {
@@ -62,5 +62,27 @@ export default class SphereDrawer {
 			this.ctx.arc(this.x, this.y, this.radius, start, end);
 		}
 		return this;
+	}
+	locate(lat, lon) {
+		const v = new Vec3([ 0, 0, 1 ]);
+		v.rotX(lat);
+		v.rotY(-lon);
+		v.applyTransform(this.t);
+		v.scale(this.radius);
+		return [ this.x + v.x, this.y - v.y, v.z ];
+	}
+	coordAt(x, y) {
+		const dx = x - this.x;
+		const dy = this.y - y;
+		const nx = dx/this.radius;
+		const ny = dy/this.radius;
+		const nz = Math.sqrt(1 - nx**2 - ny**2);
+		const v = new Vec3([ nx, ny, nz ]);
+		const t = new Transform().invert(this.t.getLatLonAzm());
+		v.applyTransform(t);
+		v.normalize();
+		const lat = Math.asin(v.y);
+		const lon = calcSignedAngle(v.z, v.x);
+		return [ lat, lon ];
 	}
 }

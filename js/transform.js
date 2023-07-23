@@ -84,4 +84,7 @@ export default class Transform extends Array {
 	setLatLonAzm([ lat, lon, azm ]) {
 		return this.reset().rotY(lon).rotX(-lat).rotZ(-azm);
 	}
+	invert([ lat, lon, azm ]) {
+		return this.reset().rotZ(azm).rotX(lat).rotY(-lon);
+	}
 }

@@ -65,4 +65,7 @@ export default class Vec3 extends Array {
 		}
 		return this;
 	}
+	normalize() {
+		this.scale(1/this.len());
+	}
 }
