@@ -12,6 +12,11 @@ export default class SphereDrawer {
 		this.last = null;
 	}
 	smallCircle(lat, lon, rad, positive = true) {
+		if (rad > Math.PI/2) {
+			rad = Math.PI - rad;
+			lat = -lat;
+			lon = lon > 0 ? lon - Math.PI : lon + Math.PI;
+		}
 		const cosRad = Math.cos(rad);
 		const v = new Vec3([ 0, 0, 1 ]);
 		v.rotX(lat);
@@ -45,7 +50,7 @@ export default class SphereDrawer {
 		this.last = { a, b, dir, eRad, z: v.z, positive };
 		return this;
 	}
-	fill() {
+	completeSmallCircle() {
 		const { last } = this;
 		if (last === null) {
 			return;
