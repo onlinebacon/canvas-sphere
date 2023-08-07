@@ -15,6 +15,51 @@ const sinCosToAngle = (sin, cos) => {
 	return TAU - Math.acos(cos);
 };
 
+const sinCosRotX = (t, sin, cos) => {
+	const [ _ix, iy, iz, _jx, jy, jz, _kx, ky, kz ] = t;
+	t[1] = iy*cos + iz*sin;
+	t[2] = iz*cos - iy*sin;
+	t[4] = jy*cos + jz*sin;
+	t[5] = jz*cos - jy*sin;
+	t[7] = ky*cos + kz*sin;
+	t[8] = kz*cos - ky*sin;
+	return t;
+};
+
+const sinCosRotY = (t, sin, cos) => {
+	const [ ix, _iy, iz, jx, _jy, jz, kx, _ky, kz ] = t;
+	t[0] = ix*cos - iz*sin;
+	t[2] = iz*cos + ix*sin;
+	t[3] = jx*cos - jz*sin;
+	t[5] = jz*cos + jx*sin;
+	t[6] = kx*cos - kz*sin;
+	t[8] = kz*cos + kx*sin;
+	return t;
+};
+
+const sinCosRotZ = (t, sin, cos) => {
+	const [ ix, iy, _iz, jx, jy, _jz, kx, ky, _kz ] = t;
+	t[0] = ix*cos + iy*sin;
+	t[1] = iy*cos - ix*sin;
+	t[3] = jx*cos + jy*sin;
+	t[4] = jy*cos - jx*sin;
+	t[6] = kx*cos + ky*sin;
+	t[7] = ky*cos - kx*sin;
+	return t;
+};
+
+const rotX = (t, angle) => {
+	sinCosRotX(t, Math.sin(angle), Math.cos(angle));
+};
+
+const rotY = (t, angle) => {
+	sinCosRotY(t, Math.sin(angle), Math.cos(angle));
+};
+
+const rotZ = (t, angle) => {
+	sinCosRotZ(t, Math.sin(angle), Math.cos(angle));
+};
+
 const getZRotAlignmentOfJ = (t) => {
 	const jx = t[J + X];
 	const jy = t[J + Y];
@@ -51,6 +96,24 @@ const getYRotAlignmentOfK = (t) => {
 	return [ sin, cos ];
 };
 
+const sinCosRotXVec3 = (vec3, sin, cos) => {
+	const [ _x, y, z ] = vec3;
+	vec3[Y] = y*cos + z*sin;
+	vec3[Z] = z*cos - y*sin;
+};
+
+const sinCosRotYVec3 = (vec3, sin, cos) => {
+	const [ x, _y, z ] = vec3;
+	vec3[X] = x*cos - z*sin;
+	vec3[Z] = z*cos + x*sin;
+};
+
+const sinCosRotZVec3 = (vec3, sin, cos) => {
+	const [ x, y, _z ] = vec3;
+	vec3[X] = x*cos + y*sin;
+	vec3[Y] = y*cos - x*sin;
+};
+
 export default class Transform extends Array {
 	constructor(values) {
 		super(9);
@@ -69,57 +132,46 @@ export default class Transform extends Array {
 		}
 		return this;
 	}
-	sinCosRotX(sin, cos) {
-		const [ _ix, iy, iz, _jx, jy, jz, _kx, ky, kz ] = this;
-		this[1] = iy*cos + iz*sin;
-		this[2] = iz*cos - iy*sin;
-		this[4] = jy*cos + jz*sin;
-		this[5] = jz*cos - jy*sin;
-		this[7] = ky*cos + kz*sin;
-		this[8] = kz*cos - ky*sin;
-		return this;
-	}
-	sinCosRotY(sin, cos) {
-		const [ ix, _iy, iz, jx, _jy, jz, kx, _ky, kz ] = this;
-		this[0] = ix*cos - iz*sin;
-		this[2] = iz*cos + ix*sin;
-		this[3] = jx*cos - jz*sin;
-		this[5] = jz*cos + jx*sin;
-		this[6] = kx*cos - kz*sin;
-		this[8] = kz*cos + kx*sin;
-		return this;
-	}
-	sinCosRotZ(sin, cos) {
-		const [ ix, iy, _iz, jx, jy, _jz, kx, ky, _kz ] = this;
-		this[0] = ix*cos + iy*sin;
-		this[1] = iy*cos - ix*sin;
-		this[3] = jx*cos + jy*sin;
-		this[4] = jy*cos - jx*sin;
-		this[6] = kx*cos + ky*sin;
-		this[7] = ky*cos - kx*sin;
-		return this;
-	}
 	rotX(angle) {
-		return this.sinCosRotX(Math.sin(angle), Math.cos(angle));
+		rotX(this, angle);
+		return this;
 	}
 	rotY(angle) {
-		return this.sinCosRotY(Math.sin(angle), Math.cos(angle));
+		rotY(this, angle);
+		return this;
 	}
 	rotZ(angle) {
-		return this.sinCosRotZ(Math.sin(angle), Math.cos(angle));
+		rotZ(this, angle);
+		return this;
 	}
 	getYXZRot() {
 		temp.set(this);
 		const [ sinZ, cosZ ] = getZRotAlignmentOfJ(temp);
-		temp.sinCosRotZ(sinZ, cosZ);
+		sinCosRotZ(temp, sinZ, cosZ);
 		const [ sinX, cosX ] = getXRotAlignmentOfJ(temp);
-		temp.sinCosRotX(sinX, cosX);
+		sinCosRotX(temp, sinX, cosX);
 		const [ sinY, cosY ] = getYRotAlignmentOfK(temp);
 		return [
 			sinCosToAngle(-sinY, cosY),
 			sinCosToAngle(-sinX, cosX),
 			sinCosToAngle(-sinZ, cosZ),
 		];
+	}
+	applyReversedToVec(vec3) {
+		temp.set(this);
+		
+		const [ sinZ, cosZ ] = getZRotAlignmentOfJ(temp);
+		sinCosRotZ(temp, sinZ, cosZ);
+		sinCosRotZVec3(vec3, sinZ, cosZ);
+		
+		const [ sinX, cosX ] = getXRotAlignmentOfJ(temp);
+		sinCosRotX(temp, sinX, cosX);
+		sinCosRotXVec3(vec3, sinX, cosX);
+		
+		const [ sinY, cosY ] = getYRotAlignmentOfK(temp);
+		sinCosRotYVec3(vec3, sinY, cosY);
+
+		return vec3;
 	}
 }
 

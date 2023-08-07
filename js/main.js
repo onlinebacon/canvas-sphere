@@ -3,7 +3,7 @@ import CanvasSphere from './canvas-sphere.js';
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 const cs = new CanvasSphere(ctx);
-const nSegments = 9;
+const nSegments = 11;
 const color = {
 	equator: '#fa7',
 	grid: '#777',
@@ -17,6 +17,7 @@ const lightDir = {
 const textMargin = 10;
 const textStride = 15;
 const textSize = 14;
+let mouse = null;
 
 const resizeCanvas = () => {
 	canvas.width = window.innerWidth;
@@ -37,7 +38,7 @@ const drawLatitudes = (positive) => {
 
 const drawLongitudes = (positive) => {
 	const lonStride = 180/nSegments;
-	const lonStart = 0;
+	const lonStart = 90;
 	for (let i=0; i<nSegments; ++i) {
 		ctx.beginPath();
 		cs.circle(0, cs.deg(lonStart + i*lonStride), cs.deg(90), positive);
@@ -46,8 +47,8 @@ const drawLongitudes = (positive) => {
 };
 
 const drawGrid = (positive) => {
-	drawLatitudes(positive);
 	drawLongitudes(positive);
+	drawLatitudes(positive);
 };
 
 const drawShadow = () => {
@@ -87,6 +88,22 @@ const drawEarthOrientation = () => {
 	}
 };
 
+const drawMouseCoord = () => {
+	if (mouse == null) {
+		return;
+	}
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+	ctx.font = textSize + 'px monospace';
+	const coord = cs.coordAt(mouse.x, mouse.y);
+	if (coord == null) {
+		return;
+	}
+	const text = coord
+		.map(val => (val/Math.PI*180).toFixed(2))
+		.join(', ');
+	ctx.fillText(text, mouse.x, mouse.y);
+};
+
 const render = () => {
 	const { width, height } = canvas;
 
@@ -113,6 +130,7 @@ const render = () => {
 
 	drawShadow();
 	drawEarthOrientation();
+	drawMouseCoord();
 };
 
 const frameLoop = () => {
@@ -125,12 +143,26 @@ window.addEventListener('resize', () => {
 	render();
 });
 
+canvas.addEventListener('mousemove', e => {
+	mouse = {
+		x: e.offsetX,
+		y: e.offsetY,
+	};
+});
+
+canvas.addEventListener('mouseout', e => {
+	mouse = null;
+});
+
 resizeCanvas();
 frameLoop();
+const tScale = 0.001;
+const t0 = Date.now();
+const getTime = () => (Date.now() - t0)*tScale;
 
 setInterval(() => {
-	const rotX = Math.cos(Date.now()*2e-4)*cs.deg(10);
-	const rotY = Date.now()*2e-3;
-	const rotZ = Math.cos(Date.now()*1e-3)*cs.deg(10);
+	const rotX = Math.sin(getTime()*1.1)*cs.deg(10);
+	const rotY = getTime()*0.5;
+	const rotZ = Math.sin(getTime()*1.4)*cs.deg(10);
 	cs.transform.reset().rotY(rotY).rotX(rotX).rotZ(rotZ);
 });

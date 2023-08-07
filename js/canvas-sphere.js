@@ -10,6 +10,8 @@ const nullCtx = Math.random() < 1 ? (
 	new CanvasRenderingContext2D()
 );
 
+const tempVec = new Vec3();
+
 const getIntersectionAngles = (last_circle) => {
 	const { chordRad, scrAngDir, intersectionAngle, intersectsEdge } = last_circle;
 	if (!intersectsEdge) {
@@ -27,6 +29,17 @@ const signAngle = (angle) => {
 		return angle - TAU;
 	}
 	return angle;
+};
+
+const calcVec3Coord = ([ x, y, z ]) => {
+	const lat = Math.asin(y);
+	const len = Math.sqrt(x**2 + z**2);
+	if (len === 0) {
+		return [ lat, 0 ];
+	}
+	const absLon = Math.acos(z/len);
+	const lon = x < 0 ? - absLon : absLon;
+	return [ lat, lon ];
 };
 
 class LastCircle {
@@ -195,5 +208,21 @@ export default class CanvasSphere {
 		const lon = signAngle(rotY);
 		const azm = (TAU - rotZ)%TAU;
 		return [ lat, lon, azm ];
+	}
+	coordAt(px, py) {
+		const { x, y, radius } = this;
+		const nx = (px - x)/radius;
+		const ny = (y - py)/radius;
+		if (Math.abs(nx) > 1 || Math.abs(ny) > 1) {
+			return null;
+		}
+		const len = Math.sqrt(nx**2 + ny**2);
+		if (len > 1) {
+			return null;
+		}
+		const nz = Math.sqrt(1 - nx**2 - ny**2);
+		tempVec.set([ nx, ny, nz ]);
+		this.transform.applyReversedToVec(tempVec);
+		return calcVec3Coord(tempVec);
 	}
 }
