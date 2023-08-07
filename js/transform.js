@@ -1,63 +1,64 @@
-const aux = new Array(9);
-const temp = new Array(9);
+const { PI } = Math;
+const TAU = PI*2;
 
 const X = 0;
 const Y = 1;
 const Z = 2;
+const I = 0;
+const J = 3;
+const K = 6;
 
-const IX = 0;
-const IZ = 2;
-const JX = 3;
-const JY = 4;
-const JZ = 5;
-
-const sinCosRotTransform = (t, sin, cos, a, b) => {
-	for (let i=0; i<9; ++i) {
-		const axis = i%3;
-		if (axis === a) {
-			aux[i] = t[i]*cos - t[i - a + b]*sin;
-		} else if (axis === b) {
-			aux[i] = t[i]*cos + t[i - b + a]*sin;
-		} else {
-			aux[i] = t[i];
-		}
+const sinCosToAngle = (sin, cos) => {
+	if (sin >= 0) {
+		return Math.acos(cos);
 	}
-	for (let i=0; i<9; ++i) {
-		t[i] = aux[i];
-	}
+	return TAU - Math.acos(cos);
 };
 
-const getLatLonAzm = (t) => {
-	const jx = t[JX];
-	let jy = t[JY];
-	let len = Math.sqrt(jx**2 + jy**2);
-	const sinAzm = -jx/len;
-	const cosAzm = jy/len;
-	const acosAzm = Math.acos(cosAzm);
-	const azm = sinAzm < 0 ? Math.PI*2 - acosAzm : acosAzm;
-	sinCosRotTransform(t, sinAzm, cosAzm, Y, X);
-	jy = t[JY];
-	const jz = t[JZ];
-	len = Math.sqrt(jy**2 + jz**2);
-	const cosLat = jy/len;
-	const sinLat = jz/len;
-	const acosLat = Math.acos(cosLat);
-	const lat = sinLat < 0 ? Math.PI*2 - acosLat : acosLat;
-	sinCosRotTransform(t, sinLat, cosLat, Z, Y);
-	const ix = t[IX];
-	const iz = t[IZ];
-	len = Math.sqrt(ix**2 + iz**2);
-	const cosLon = ix/len;
-	const sinLon = iz/len;
-	const acosLon = Math.acos(cosLon);
-	const lon = sinLon < 0 ? Math.PI*2 - acosLon : acosLon;
-	return [ lat, lon, azm ];
+const getZRotAlignmentOfJ = (t) => {
+	const jx = t[J + X];
+	const jy = t[J + Y];
+	const len = Math.sqrt(jx**2 + jy**2);
+	if (len === 0) {
+		return [ 0, 1 ];
+	}
+	const sin = -jx/len;
+	const cos = jy/len;
+	return [ sin, cos ];
+};
+
+const getXRotAlignmentOfJ = (t) => {
+	const jy = t[J + Y];
+	const jz = t[J + Z];
+	const len = Math.sqrt(jy**2 + jz**2);
+	if (len === 0) {
+		return [ 0, 1 ];
+	}
+	const sin = jz/len;
+	const cos = jy/len;
+	return [ sin, cos ];
+};
+
+const getYRotAlignmentOfK = (t) => {
+	const kx = t[K + X];
+	const kz = t[K + Z];
+	const len = Math.sqrt(kx**2 + kz**2);
+	if (len === 0) {
+		return [ 0, 1 ];
+	}
+	const sin = kx/len;
+	const cos = kz/len;
+	return [ sin, cos ];
 };
 
 export default class Transform extends Array {
-	constructor() {
+	constructor(values) {
 		super(9);
-		this.reset();
+		if (values != null) {
+			this.set(values);
+		} else {
+			this.reset();
+		}
 	}
 	reset() {
 		return this.set([ 1, 0, 0, 0, 1, 0, 0, 0, 1 ]);
@@ -68,23 +69,58 @@ export default class Transform extends Array {
 		}
 		return this;
 	}
-	rot(angle, a, b) {
-		sinCosRotTransform(this, Math.sin(angle), Math.cos(angle), a, b);
+	sinCosRotX(sin, cos) {
+		const [ _ix, iy, iz, _jx, jy, jz, _kx, ky, kz ] = this;
+		this[1] = iy*cos + iz*sin;
+		this[2] = iz*cos - iy*sin;
+		this[4] = jy*cos + jz*sin;
+		this[5] = jz*cos - jy*sin;
+		this[7] = ky*cos + kz*sin;
+		this[8] = kz*cos - ky*sin;
 		return this;
 	}
-	rotX(angle) { return this.rot(angle, Z, Y); }
-	rotY(angle) { return this.rot(angle, X, Z); }
-	rotZ(angle) { return this.rot(angle, Y, X); }
-	getLatLonAzm() {
-		for (let i=0; i<9; ++i) {
-			temp[i] = this[i];
-		}
-		return getLatLonAzm(temp);
+	sinCosRotY(sin, cos) {
+		const [ ix, _iy, iz, jx, _jy, jz, kx, _ky, kz ] = this;
+		this[0] = ix*cos - iz*sin;
+		this[2] = iz*cos + ix*sin;
+		this[3] = jx*cos - jz*sin;
+		this[5] = jz*cos + jx*sin;
+		this[6] = kx*cos - kz*sin;
+		this[8] = kz*cos + kx*sin;
+		return this;
 	}
-	setLatLonAzm([ lat, lon, azm ]) {
-		return this.reset().rotY(lon).rotX(-lat).rotZ(-azm);
+	sinCosRotZ(sin, cos) {
+		const [ ix, iy, _iz, jx, jy, _jz, kx, ky, _kz ] = this;
+		this[0] = ix*cos + iy*sin;
+		this[1] = iy*cos - ix*sin;
+		this[3] = jx*cos + jy*sin;
+		this[4] = jy*cos - jx*sin;
+		this[6] = kx*cos + ky*sin;
+		this[7] = ky*cos - kx*sin;
+		return this;
 	}
-	invert([ lat, lon, azm ]) {
-		return this.reset().rotZ(azm).rotX(lat).rotY(-lon);
+	rotX(angle) {
+		return this.sinCosRotX(Math.sin(angle), Math.cos(angle));
+	}
+	rotY(angle) {
+		return this.sinCosRotY(Math.sin(angle), Math.cos(angle));
+	}
+	rotZ(angle) {
+		return this.sinCosRotZ(Math.sin(angle), Math.cos(angle));
+	}
+	getYXZRot() {
+		temp.set(this);
+		const [ sinZ, cosZ ] = getZRotAlignmentOfJ(temp);
+		temp.sinCosRotZ(sinZ, cosZ);
+		const [ sinX, cosX ] = getXRotAlignmentOfJ(temp);
+		temp.sinCosRotX(sinX, cosX);
+		const [ sinY, cosY ] = getYRotAlignmentOfK(temp);
+		return [
+			sinCosToAngle(-sinY, cosY),
+			sinCosToAngle(-sinX, cosX),
+			sinCosToAngle(-sinZ, cosZ),
+		];
 	}
 }
+
+const temp = new Transform();

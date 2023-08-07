@@ -1,21 +1,30 @@
-const temp = new Array(3);
+const temp = [ 0, 0, 0 ];
+
 const X = 0;
 const Y = 1;
 const Z = 2;
 
 export default class Vec3 extends Array {
-	constructor([ x, y, z ] = [ 0, 0, 1 ]) {
+	constructor(values) {
 		super(3);
-		this[X] = x;
-		this[Y] = y;
-		this[Z] = z;
+		if (values != null) {
+			this.set(values);
+		} else {
+			this.set([ 0, 0, 0 ]);
+		}
 	}
-	get x() { return this[X]; }
-	get y() { return this[Y]; }
-	get z() { return this[Z]; }
-	set x(val) { this[X] = val; }
-	set y(val) { this[Y] = val; }
-	set z(val) { this[Z] = val; }
+	get x() { return this[0]; }
+	get y() { return this[1]; }
+	get z() { return this[2]; }
+	set x(val) { this[0] = val; }
+	set y(val) { this[1] = val; }
+	set z(val) { this[2] = val; }
+	set(values) {
+		for (let i=0; i<3; ++i) {
+			this[i] = values[i];
+		}
+		return this;
+	}
 	rot(angle, a, b) {
 		const sin = Math.sin(angle);
 		const cos = Math.cos(angle);
@@ -30,42 +39,33 @@ export default class Vec3 extends Array {
 		}
 		return this.set(temp);
 	}
-	rotX(angle) {
-		return this.rot(angle, Z, Y);
-	}
-	rotY(angle) {
-		return this.rot(angle, X, Z);
-	}
-	rotZ(angle) {
-		return this.rot(angle, Y, X);
-	}
-	set(values) {
-		for (let i=0; i<3; ++i) {
-			this[i] = values[i];
-		}
-		return this;
-	}
-	applyTransform(t) {
+	rotX(angle) { return this.rot(angle, Z, Y); }
+	rotY(angle) { return this.rot(angle, X, Z); }
+	rotZ(angle) { return this.rot(angle, Y, X); }
+	transform(t) {
 		for (let i=0; i<3; ++i) {
 			let sum = 0;
 			for (let j=0; j<3; ++j) {
-				sum += this[j]*t[j*3 + i];
+				sum += this[j] * t[j*3 + i];
 			}
 			temp[i] = sum;
 		}
 		return this.set(temp);
 	}
-	len() {
-		const [ x, y, z ] = this;
-		return Math.sqrt(x*x + y*y + z*z);
-	}
-	scale(val) {
+	scale(value) {
 		for (let i=0; i<3; ++i) {
-			this[i] *= val;
+			this[i] *= value;
 		}
 		return this;
 	}
-	normalize() {
-		this.scale(1/this.len());
+	add(values) {
+		for (let i=0; i<3; ++i) {
+			this[i] += values[i];
+		}
+		return this;
+	}
+	len() {
+		const [ x, y, z ] = this;
+		return Math.sqrt(x**2 + y**2 + z**2);
 	}
 }
