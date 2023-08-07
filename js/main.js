@@ -20,7 +20,7 @@ const textSize = 14;
 
 const resizeCanvas = () => {
 	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
+	canvas.height = Math.min(canvas.width, window.innerHeight);
 };
 
 const drawLatitudes = (positive) => {
@@ -94,7 +94,8 @@ const render = () => {
 	cs.y = height*0.5;
 	cs.radius = Math.min(width, height)*0.4;
 
-	ctx.clearRect(0, 0, width, height);
+	ctx.fillStyle = '#222';
+	ctx.fillRect(0, 0, width, height);
 
 	drawGrid(false);
 
